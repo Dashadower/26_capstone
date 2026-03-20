@@ -1,1 +1,1 @@
-# 26_capstone
+# TraceInspector

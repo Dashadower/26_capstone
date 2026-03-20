@@ -1,4 +1,5 @@
 
+# TraceInspector 
 # analyzer executable 입출력 형식
 
 JSON 형식으로 출력
@@ -14,6 +15,10 @@ JSON 형식으로 출력
 ./analyzer input.go --print-cfg
 ```
 
+`node_type` :
+- "basic" (사각형)
+- "cond" (마름모)
+
 JSON Format
 
 ```
@@ -22,25 +27,25 @@ JSON Format
         {
             "id" : 1,
             "code" : "x := 1",
-            "type" : "basic",
+            "node_type" : "basic",
             "line_num" : 1
         },
         {
             "id": 2,
             "code" : "if x < 0",
-            "type" : "branch",
+            "node_type" : "branch",
             "line_num" : 2
         },
         {
             "id": 3,
             "code": "x = -x",
-            "type" : "basic",
+            "node_type" : "basic",
             "line_num" : 3
         },
         {
             "id": 4,
             "code": "fmt.Println(x)",
-            "type" : "basic",
+            "node_type" : "basic",
             "line_num" : 4
         },
     ],
