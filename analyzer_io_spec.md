@@ -21,78 +21,84 @@ JSON 형식으로 출력
 
 Input code
 ```go
-var x int
-fmt.Scan(&x)
-if x < 0 {
+func main(){
+    var x int
+    fmt.Scan(&x)
+    if x < 0 {
 
-} else {
-    x = -x
+    } else {
+        x = -x
+    }
+    fmt.Println(x)
 }
-fmt.Println(x)
 ```
 
 JSON Format
 
+generates a CFG graph for every function defined in the file.
+
 ```
 {
-  "Nodes": [
-    {
-      "Id": 1,
-      "Code": "var x int",
-      "Node_type": "basic",
-      "Line_num": 6
-    },
-    {
-      "Id": 2,
-      "Code": "fmt.Scan(\u0026x)",
-      "Node_type": "basic",
-      "Line_num": 7
-    },
-    {
-      "Id": 3,
-      "Code": "x \u003c 0",
-      "Node_type": "cond",
-      "Line_num": 8
-    },
-    {
-      "Id": 4,
-      "Code": "{\n\tx = -x\n}",
-      "Node_type": "basic",
-      "Line_num": 10
-    },
-    {
-      "Id": 5,
-      "Code": "fmt.Println(x)",
-      "Node_type": "basic",
-      "Line_num": 13
-    }
-  ],
-  "Edges": [
-    {
-      "Id": 0,
-      "From_node_id": 1,
-      "To_node_id": 2,
-      "Label": ""
-    },
-    {
-      "Id": 1,
-      "From_node_id": 2,
-      "To_node_id": 3,
-      "Label": ""
-    },
-    {
-      "Id": 2,
-      "From_node_id": 3,
-      "To_node_id": 4,
-      "Label": "false"
-    },
-    {
-      "Id": 3,
-      "From_node_id": 3,
-      "To_node_id": 5,
-      "Label": ""
-    }
-  ]
+  "main": {
+    "Nodes": [
+      {
+        "Id": 1,
+        "Code": "var x int",
+        "Node_type": "basic",
+        "Line_num": 6
+      },
+      {
+        "Id": 2,
+        "Code": "fmt.Scan(\u0026x)",
+        "Node_type": "basic",
+        "Line_num": 7
+      },
+      {
+        "Id": 3,
+        "Code": "x \u003c 0",
+        "Node_type": "cond",
+        "Line_num": 8
+      },
+      {
+        "Id": 4,
+        "Code": "{\n\tx = -x\n}",
+        "Node_type": "basic",
+        "Line_num": 10
+      },
+      {
+        "Id": 5,
+        "Code": "fmt.Println(x)",
+        "Node_type": "basic",
+        "Line_num": 13
+      }
+    ],
+    "Edges": [
+      {
+        "Id": 0,
+        "From_node_id": 1,
+        "To_node_id": 2,
+        "Label": ""
+      },
+      {
+        "Id": 1,
+        "From_node_id": 2,
+        "To_node_id": 3,
+        "Label": ""
+      },
+      {
+        "Id": 2,
+        "From_node_id": 3,
+        "To_node_id": 4,
+        "Label": "false"
+      },
+      {
+        "Id": 3,
+        "From_node_id": 3,
+        "To_node_id": 5,
+        "Label": ""
+      }
+    ]
+  }
 }
 ```
 
