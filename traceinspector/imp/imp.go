@@ -9,6 +9,7 @@ type ImpTypes interface {
 
 type IntType ImpTypes
 type BoolType ImpTypes
+type NonType ImpTypes
 
 type ImpArray struct {
 	element_type ImpTypes
@@ -16,6 +17,33 @@ type ImpArray struct {
 }
 
 func (ty ImpArray) isType()
+
+type ImpValues interface {
+	isValue()
+}
+
+type IntVal struct {
+	val int
+}
+
+func (*IntVal) isValue() {}
+
+type BoolVal struct {
+	val bool
+}
+
+func (*BoolVal) isValue() {}
+
+type ArrayVal struct {
+	element_type ImpTypes
+	val          []ImpValues
+}
+
+func (*ArrayVal) isValue() {}
+
+type NoneVal struct{}
+
+func (*NoneVal) isValue() {}
 
 //////////////////////
 
@@ -31,6 +59,11 @@ type Stmt interface {
 	isStmt()
 }
 
+type ArgPair struct {
+	name string
+	expr Expr
+}
+
 // expressions
 
 type VarExpr struct {
@@ -40,6 +73,10 @@ type VarExpr struct {
 }
 
 func (*VarExpr) isExpr() {}
+
+func (expr VarExpr) String() string {
+	return expr.name
+}
 
 type IntValueExpr struct {
 	value int
@@ -117,7 +154,7 @@ func (*OrExpr) isExpr() {}
 
 type CallExpr struct {
 	func_name string
-	args      []Expr
+	args      []ArgPair
 }
 
 func (*CallExpr) isExpr() {}
@@ -165,7 +202,7 @@ func (*WhileStmt) isStmt() {}
 
 type CallStmt struct {
 	func_name string
-	args      []Expr
+	args      []ArgPair
 }
 
 func (*CallStmt) isStmt() {}
