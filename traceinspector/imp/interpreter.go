@@ -47,43 +47,6 @@ func (interpreter *ImpInterpreter) eval_VarExpr(node VarExpr) ImpValues {
 	return var_value
 }
 
-func (interpreter *ImpInterpreter) eval_Expr(node Expr) ImpValues {
-	switch node_ty := node.(type) {
-	case *VarExpr:
-		return interpreter.eval_VarExpr(*node_ty)
-	case *IntLitExpr:
-		return interpreter.eval_IntLitExpr(*node_ty)
-	case *BoolLitExpr:
-		return interpreter.eval_BoolLitExpr(*node_ty)
-	case *AddExpr:
-		return interpreter.eval_AddExpr(*node_ty)
-	case *SubExpr:
-		return interpreter.eval_SubExpr(*node_ty)
-	case *MulExpr:
-		return interpreter.eval_MulExpr(*node_ty)
-	case *DivExpr:
-		return interpreter.eval_DivExpr(*node_ty)
-	case *ParenExpr:
-		return interpreter.eval_ParenExpr(*node_ty)
-	case *ArrayIndexExpr:
-		return interpreter.eval_ArrayIndexExpr(*node_ty)
-	case *EqExpr:
-		return interpreter.eval_EqExpr(*node_ty)
-	case *NeqExpr:
-		return interpreter.eval_NeqExpr(*node_ty)
-	case *NotExpr:
-		return interpreter.eval_NotExpr(*node_ty)
-	case *AndExpr:
-		return interpreter.eval_AndExpr(*node_ty)
-	case *OrExpr:
-		return interpreter.eval_OrExpr(*node_ty)
-	case *CallExpr:
-		return interpreter.eval_CallExpr(*node_ty)
-	default:
-		panic(fmt.Sprintf("Unimplemented expr type %s", node))
-	}
-}
-
 func (interpreter *ImpInterpreter) eval_Expr_lvalue(lhs Expr, rhs ImpValues) ImpValues {
 	lhs_var, lhs_is_var := lhs.(*VarExpr)
 	if lhs_is_var {
@@ -271,6 +234,73 @@ func (interpreter *ImpInterpreter) eval_function_call(func_name string, args []E
 func (interpreter *ImpInterpreter) eval_CallExpr(node CallExpr) ImpValues {
 	return interpreter.eval_function_call(node.func_name, node.args)
 }
+
+func (interpreter *ImpInterpreter) eval_MakeArrayExpr(node MakeArrayExpr) ImpValues {
+	len_node := interpreter.eval_Expr(node.size)
+	len_intval, len_is_int := len_node.(*IntVal)
+	if !len_is_int {
+		panic(fmt.Sprintf("make_array: length expression %s is not an integer value", node.size))
+	}
+	default_val := interpreter.eval_Expr(node.value)
+	generated := make([]ImpValues, len_intval.val)
+	for i := 0; i < len_intval.val; i++ {
+		generated[i] = default_val
+	}
+	return &ArrayVal{get_type(default_val), generated}
+}
+
+func (interpreter *ImpInterpreter) eval_LenExpr(node LenExpr) ImpValues {
+	array_node := interpreter.eval_Expr(node.subexpr)
+	array_val, is_array := array_node.(*ArrayVal)
+	if !is_array {
+		panic(fmt.Sprintf("len: Non-array value %s passed to len()", node.subexpr))
+	}
+	return &IntVal{val: len(array_val.val)}
+}
+
+func (interpreter *ImpInterpreter) eval_Expr(node Expr) ImpValues {
+	switch node_ty := node.(type) {
+	case *VarExpr:
+		return interpreter.eval_VarExpr(*node_ty)
+	case *IntLitExpr:
+		return interpreter.eval_IntLitExpr(*node_ty)
+	case *BoolLitExpr:
+		return interpreter.eval_BoolLitExpr(*node_ty)
+	case *AddExpr:
+		return interpreter.eval_AddExpr(*node_ty)
+	case *SubExpr:
+		return interpreter.eval_SubExpr(*node_ty)
+	case *MulExpr:
+		return interpreter.eval_MulExpr(*node_ty)
+	case *DivExpr:
+		return interpreter.eval_DivExpr(*node_ty)
+	case *ParenExpr:
+		return interpreter.eval_ParenExpr(*node_ty)
+	case *ArrayIndexExpr:
+		return interpreter.eval_ArrayIndexExpr(*node_ty)
+	case *EqExpr:
+		return interpreter.eval_EqExpr(*node_ty)
+	case *NeqExpr:
+		return interpreter.eval_NeqExpr(*node_ty)
+	case *NotExpr:
+		return interpreter.eval_NotExpr(*node_ty)
+	case *AndExpr:
+		return interpreter.eval_AndExpr(*node_ty)
+	case *OrExpr:
+		return interpreter.eval_OrExpr(*node_ty)
+	case *CallExpr:
+		return interpreter.eval_CallExpr(*node_ty)
+	case *MakeArrayExpr:
+		return interpreter.eval_MakeArrayExpr(*node_ty)
+	case *LenExpr:
+		return interpreter.eval_LenExpr(*node_ty)
+	default:
+		panic(fmt.Sprintf("Unimplemented expr type %s", node))
+	}
+}
+
+/////////////////////////////////
+// statements
 
 func (interpreter *ImpInterpreter) eval_SkipStmt(SkipStmt) {}
 

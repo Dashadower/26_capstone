@@ -12,22 +12,31 @@ type ImpTypes interface {
 	isType()
 }
 
-type IntType ImpTypes
+type IntType struct{}
 
-type BoolType ImpTypes
-type StringType ImpTypes
-type NonType ImpTypes
+func (ty IntType) isType()
 
-type ImpArray struct {
+type BoolType struct{}
+
+func (ty BoolType) isType()
+
+type StringType struct{}
+
+func (ty StringType) isType()
+
+type NoneType struct{}
+
+func (ty NoneType) isType()
+
+type ArrayType struct {
 	Element_type ImpTypes
-	Len          int
 }
 
-func (ty ImpArray) String() string {
+func (ty ArrayType) String() string {
 	return fmt.Sprintf("ArrayType<%s>", ty.Element_type)
 }
 
-func (ty ImpArray) isType()
+func (ty ArrayType) isType()
 
 // Given a Value and a specified Type, check that the Value is of the specified type
 func check_val_type_match(val ImpValues, _type ImpTypes) bool {
@@ -39,13 +48,28 @@ func check_val_type_match(val ImpValues, _type ImpTypes) bool {
 		_, type_is_bool := _type.(BoolType)
 		return type_is_bool
 	case *ArrayVal:
-		array_ty, type_is_array := _type.(ImpArray)
+		array_ty, type_is_array := _type.(ArrayType)
 		return type_is_array && array_ty.Element_type == val_ty.element_type
 	case *StringVal:
 		_, type_is_string := _type.(StringType)
 		return type_is_string
 	}
 	return false
+}
+
+func get_type(val ImpValues) ImpTypes {
+	switch val_ty := val.(type) {
+	case *IntVal:
+		return IntType{}
+	case *BoolVal:
+		return BoolType{}
+	case *StringVal:
+		return StringType{}
+	case *ArrayVal:
+		return ArrayType{Element_type: val_ty.element_type}
+	default:
+		panic(fmt.Sprintf("get_type: got unknown type for value %s\n", val))
+	}
 }
 
 ////////////////////////
@@ -289,6 +313,27 @@ func (expr CallExpr) String() string {
 		func_args = append(func_args, fmt.Sprintf("%s", arg))
 	}
 	return fmt.Sprintf("%s(%s)", expr.func_name, strings.Join(func_args, ", "))
+}
+
+type MakeArrayExpr struct {
+	size  Expr
+	value Expr
+}
+
+func (*MakeArrayExpr) isExpr() {}
+
+func (expr MakeArrayExpr) String() string {
+	return fmt.Sprintf("make_array(%s, %s)", expr.size, expr.value)
+}
+
+type LenExpr struct {
+	subexpr Expr
+}
+
+func (*LenExpr) isExpr() {}
+
+func (expr LenExpr) String() string {
+	return fmt.Sprintf("len(%s)", expr.subexpr)
 }
 
 // statements
