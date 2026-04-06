@@ -63,18 +63,18 @@ func (interpreter *ImpInterpreter) pop_state() {
 func (ImpInterpreter *ImpInterpreter) deepcopy_impvalue(val ImpValues) ImpValues {
 	switch val_ty := val.(type) {
 	case *IntVal:
-		return &IntVal{val: val_ty.val}
+		return &IntVal{Val: val_ty.Val}
 	case *BoolVal:
-		return &BoolVal{val: val_ty.val}
+		return &BoolVal{Val: val_ty.Val}
 	case *StringVal:
-		return &StringVal{val: val_ty.val}
+		return &StringVal{Val: val_ty.Val}
 	case *ArrayVal:
-		arrayval := ArrayVal{element_type: val_ty.element_type}
+		arrayval := ArrayVal{Element_type: val_ty.Element_type}
 		var copied_slice []ImpValues
-		for _, elem := range val_ty.val {
+		for _, elem := range val_ty.Val {
 			copied_slice = append(copied_slice, ImpInterpreter.deepcopy_impvalue(elem))
 		}
-		arrayval.val = copied_slice
+		arrayval.Val = copied_slice
 		return &arrayval
 	default:
 		panic(fmt.Sprintf("deepcopy_impvalue: Unknown value type %T\n", val))
@@ -84,9 +84,9 @@ func (ImpInterpreter *ImpInterpreter) deepcopy_impvalue(val ImpValues) ImpValues
 ////////////////////////
 
 func (interpreter *ImpInterpreter) eval_VarExpr(node VarExpr) ImpValues {
-	var_value, var_exists := interpreter.get_variable(node.name)
+	var_value, var_exists := interpreter.get_variable(node.Name)
 	if !var_exists {
-		panic(fmt.Sprintf("Line %d: Unknown variable '%s'", node.Node.Line_num, node.name))
+		panic(fmt.Sprintf("Line %d: Unknown variable '%s'", node.Node.Line_num, node.Name))
 	}
 	return var_value
 }
@@ -94,20 +94,20 @@ func (interpreter *ImpInterpreter) eval_VarExpr(node VarExpr) ImpValues {
 func (interpreter *ImpInterpreter) eval_Expr_lvalue(lhs Expr, rhs_ty ImpTypes) ImpValues {
 	lhs_var, lhs_is_var := lhs.(*VarExpr)
 	if lhs_is_var {
-		_, lhs_exists := interpreter.get_variable(lhs_var.name)
+		_, lhs_exists := interpreter.get_variable(lhs_var.Name)
 		if !lhs_exists {
 			switch ty := rhs_ty.(type) {
 			case IntType:
-				interpreter.get_top_state().vars[lhs_var.name] = &IntVal{}
+				interpreter.get_top_state().vars[lhs_var.Name] = &IntVal{}
 			case BoolType:
-				interpreter.get_top_state().vars[lhs_var.name] = &BoolVal{}
+				interpreter.get_top_state().vars[lhs_var.Name] = &BoolVal{}
 			case ArrayType:
-				interpreter.get_top_state().vars[lhs_var.name] = &ArrayVal{element_type: ty.Element_type}
+				interpreter.get_top_state().vars[lhs_var.Name] = &ArrayVal{Element_type: ty.Element_type}
 			default:
 				panic(fmt.Sprintf("Line %d: Unknown rhs type %T", lhs_var.Line_num, ty))
 			}
 		}
-		var_val, _ := interpreter.get_variable(lhs_var.name)
+		var_val, _ := interpreter.get_variable(lhs_var.Name)
 		return var_val
 	} else {
 		return interpreter.eval_Expr(lhs)
@@ -115,21 +115,21 @@ func (interpreter *ImpInterpreter) eval_Expr_lvalue(lhs Expr, rhs_ty ImpTypes) I
 }
 
 func (interpreter *ImpInterpreter) eval_IntLitExpr(node IntLitExpr) ImpValues {
-	return &IntVal{val: node.value}
+	return &IntVal{Val: node.Value}
 }
 
 func (interpreter *ImpInterpreter) eval_BoolLitExpr(node BoolLitExpr) ImpValues {
-	return &BoolVal{val: node.value}
+	return &BoolVal{Val: node.Value}
 }
 
 func (interpreter *ImpInterpreter) eval_StringLitExpr(node StringLitExpr) ImpValues {
-	return &StringVal{val: node.value}
+	return &StringVal{Val: node.Value}
 }
 
 func (interpreter *ImpInterpreter) eval_ArrayLitExpr(node ArrayLitExpr) ImpValues {
 	var elem_vals []ImpValues
 	var elem_type ImpTypes
-	for _, elem := range node.elements {
+	for _, elem := range node.Elements {
 		elem_val := interpreter.eval_Expr(elem)
 		if elem_type == nil {
 			elem_type = get_type(elem_val)
@@ -139,213 +139,213 @@ func (interpreter *ImpInterpreter) eval_ArrayLitExpr(node ArrayLitExpr) ImpValue
 		}
 		elem_vals = append(elem_vals, elem_val)
 	}
-	return &ArrayVal{element_type: elem_type, val: elem_vals}
+	return &ArrayVal{Element_type: elem_type, Val: elem_vals}
 }
 
 func (interpreter *ImpInterpreter) eval_AddExpr(node AddExpr) ImpValues {
-	lhs_val, lhs_is_int := interpreter.eval_Expr(node.lhs).(*IntVal)
-	rhs_val, rhs_is_int := interpreter.eval_Expr(node.rhs).(*IntVal)
+	lhs_val, lhs_is_int := interpreter.eval_Expr(node.Lhs).(*IntVal)
+	rhs_val, rhs_is_int := interpreter.eval_Expr(node.Rhs).(*IntVal)
 
 	if !lhs_is_int {
-		panic(fmt.Sprintf("Line %d: LHS of addition should be an int value, but got '%s'", node.Line_num, node.lhs))
+		panic(fmt.Sprintf("Line %d: LHS of addition should be an int value, but got '%s'", node.Line_num, node.Lhs))
 	}
 
 	if !rhs_is_int {
-		panic(fmt.Sprintf("Line %d: RHS of addition should be an int value, but got '%s'", node.Line_num, node.rhs))
+		panic(fmt.Sprintf("Line %d: RHS of addition should be an int value, but got '%s'", node.Line_num, node.Rhs))
 	}
-	return &IntVal{val: lhs_val.val + rhs_val.val}
+	return &IntVal{Val: lhs_val.Val + rhs_val.Val}
 }
 
 func (interpreter *ImpInterpreter) eval_SubExpr(node SubExpr) ImpValues {
-	lhs_val, lhs_is_int := interpreter.eval_Expr(node.lhs).(*IntVal)
-	rhs_val, rhs_is_int := interpreter.eval_Expr(node.rhs).(*IntVal)
+	lhs_val, lhs_is_int := interpreter.eval_Expr(node.Lhs).(*IntVal)
+	rhs_val, rhs_is_int := interpreter.eval_Expr(node.Rhs).(*IntVal)
 
 	if !lhs_is_int {
-		panic(fmt.Sprintf("Line %d: LHS of subtraction should be an int value, but got '%s'", node.Line_num, node.lhs))
+		panic(fmt.Sprintf("Line %d: LHS of subtraction should be an int value, but got '%s'", node.Line_num, node.Lhs))
 	}
 
 	if !rhs_is_int {
-		panic(fmt.Sprintf("RHS of subtraction should be an int value, but got '%s'", node.rhs))
+		panic(fmt.Sprintf("RHS of subtraction should be an int value, but got '%s'", node.Rhs))
 	}
-	return &IntVal{val: lhs_val.val - rhs_val.val}
+	return &IntVal{Val: lhs_val.Val - rhs_val.Val}
 }
 
 func (interpreter *ImpInterpreter) eval_MulExpr(node MulExpr) ImpValues {
-	lhs_val, lhs_is_int := interpreter.eval_Expr(node.lhs).(*IntVal)
-	rhs_val, rhs_is_int := interpreter.eval_Expr(node.rhs).(*IntVal)
+	lhs_val, lhs_is_int := interpreter.eval_Expr(node.Lhs).(*IntVal)
+	rhs_val, rhs_is_int := interpreter.eval_Expr(node.Rhs).(*IntVal)
 
 	if !lhs_is_int {
-		panic(fmt.Sprintf("Line %d: LHS of multiplication should be an int value, but got '%s'", node.Line_num, node.lhs))
+		panic(fmt.Sprintf("Line %d: LHS of multiplication should be an int value, but got '%s'", node.Line_num, node.Lhs))
 	}
 
 	if !rhs_is_int {
-		panic(fmt.Sprintf("Line %d: RHS of multiplication should be an int value, but got '%s'", node.Line_num, node.rhs))
+		panic(fmt.Sprintf("Line %d: RHS of multiplication should be an int value, but got '%s'", node.Line_num, node.Rhs))
 	}
-	return &IntVal{val: lhs_val.val * rhs_val.val}
+	return &IntVal{Val: lhs_val.Val * rhs_val.Val}
 }
 
 func (interpreter *ImpInterpreter) eval_DivExpr(node DivExpr) ImpValues {
-	lhs_val, lhs_is_int := interpreter.eval_Expr(node.lhs).(*IntVal)
-	rhs_val, rhs_is_int := interpreter.eval_Expr(node.rhs).(*IntVal)
+	lhs_val, lhs_is_int := interpreter.eval_Expr(node.Lhs).(*IntVal)
+	rhs_val, rhs_is_int := interpreter.eval_Expr(node.Rhs).(*IntVal)
 
 	if !lhs_is_int {
-		panic(fmt.Sprintf("Line %d: LHS of division should be an int value, but got '%s'", node.Line_num, node.lhs))
+		panic(fmt.Sprintf("Line %d: LHS of division should be an int value, but got '%s'", node.Line_num, node.Lhs))
 	}
 
 	if !rhs_is_int {
-		panic(fmt.Sprintf("Line %d: RHS of division should be an int value, but got '%s'", node.Line_num, node.rhs))
+		panic(fmt.Sprintf("Line %d: RHS of division should be an int value, but got '%s'", node.Line_num, node.Rhs))
 	}
-	return &IntVal{val: lhs_val.val / rhs_val.val}
+	return &IntVal{Val: lhs_val.Val / rhs_val.Val}
 }
 
 func (interpreter *ImpInterpreter) eval_ParenExpr(node ParenExpr) ImpValues {
-	return interpreter.eval_Expr(node.subexpr)
+	return interpreter.eval_Expr(node.Subexpr)
 }
 
 func (interpreter *ImpInterpreter) eval_ArrayIndexExpr(node ArrayIndexExpr) ImpValues {
-	index_val, index_is_int := interpreter.eval_Expr(node.index).(*IntVal)
+	index_val, index_is_int := interpreter.eval_Expr(node.Index).(*IntVal)
 	if !index_is_int {
-		panic(fmt.Sprintf("Line %d: Index of array indexing should be an int value, but got '%s'", node.Line_num, node.index))
+		panic(fmt.Sprintf("Line %d: Index of array indexing should be an int value, but got '%s'", node.Line_num, node.Index))
 	}
-	base_val, base_is_arrayval := interpreter.eval_Expr(node.base).(*ArrayVal)
+	base_val, base_is_arrayval := interpreter.eval_Expr(node.Base).(*ArrayVal)
 	if !base_is_arrayval {
-		panic(fmt.Sprintf("Line %d: Expr '%s' is not an array", node.Line_num, node.base))
+		panic(fmt.Sprintf("Line %d: Expr '%s' is not an array", node.Line_num, node.Base))
 	}
-	return base_val.val[index_val.val]
+	return base_val.Val[index_val.Val]
 }
 
 func (interpreter *ImpInterpreter) eval_EqExpr(node EqExpr) ImpValues {
-	lhs_val := interpreter.eval_Expr(node.lhs)
-	rhs_val := interpreter.eval_Expr(node.rhs)
+	lhs_val := interpreter.eval_Expr(node.Lhs)
+	rhs_val := interpreter.eval_Expr(node.Rhs)
 	if !check_vals_type_equal(lhs_val, rhs_val) {
 		panic(fmt.Sprintf("Line %d: Unsupported '==' between '%s' and '%s'", node.Line_num, lhs_val, rhs_val))
 	}
 	switch lhs_val := lhs_val.(type) {
 	case *IntVal:
 		rhs_val, _ := rhs_val.(*IntVal)
-		return &BoolVal{val: lhs_val.val == rhs_val.val}
+		return &BoolVal{Val: lhs_val.Val == rhs_val.Val}
 	case *BoolVal:
 		rhs_val, _ := rhs_val.(*BoolVal)
-		return &BoolVal{val: lhs_val.val == rhs_val.val}
+		return &BoolVal{Val: lhs_val.Val == rhs_val.Val}
 	case *StringVal:
 		rhs_val, _ := rhs_val.(*StringVal)
-		return &BoolVal{val: lhs_val.val == rhs_val.val}
+		return &BoolVal{Val: lhs_val.Val == rhs_val.Val}
 	case *NoneVal:
-		return &BoolVal{val: true}
+		return &BoolVal{Val: true}
 	default:
 		panic(fmt.Sprintf("Line %d: Unsupported '==' between %s and %s", node.Line_num, lhs_val, rhs_val))
 	}
 }
 
 func (interpreter *ImpInterpreter) eval_NeqExpr(node NeqExpr) ImpValues {
-	lhs_val := interpreter.eval_Expr(node.lhs)
-	rhs_val := interpreter.eval_Expr(node.rhs)
+	lhs_val := interpreter.eval_Expr(node.Lhs)
+	rhs_val := interpreter.eval_Expr(node.Rhs)
 	if !check_vals_type_equal(lhs_val, rhs_val) {
 		panic(fmt.Sprintf("Line %d: Unsupported '!=' between %s and %s", node.Line_num, lhs_val, rhs_val))
 	}
 	switch lhs_val := lhs_val.(type) {
 	case *IntVal:
 		rhs_val, _ := rhs_val.(*IntVal)
-		return &BoolVal{val: lhs_val.val != rhs_val.val}
+		return &BoolVal{Val: lhs_val.Val != rhs_val.Val}
 	case *BoolVal:
 		rhs_val, _ := rhs_val.(*BoolVal)
-		return &BoolVal{val: lhs_val.val != rhs_val.val}
+		return &BoolVal{Val: lhs_val.Val != rhs_val.Val}
 	case *StringVal:
 		rhs_val, _ := rhs_val.(*StringVal)
-		return &BoolVal{val: lhs_val.val != rhs_val.val}
+		return &BoolVal{Val: lhs_val.Val != rhs_val.Val}
 	case *NoneVal:
-		return &BoolVal{val: false}
+		return &BoolVal{Val: false}
 	default:
 		panic(fmt.Sprintf("Line %d: Unsupported '!=' between %s and %s", node.Line_num, lhs_val, rhs_val))
 	}
 }
 
 func (interpreter *ImpInterpreter) eval_LessthanExpr(node LessthanExpr) ImpValues {
-	lhs_val := interpreter.eval_Expr(node.lhs)
-	rhs_val := interpreter.eval_Expr(node.rhs)
+	lhs_val := interpreter.eval_Expr(node.Lhs)
+	rhs_val := interpreter.eval_Expr(node.Rhs)
 	lhs_intvar, lhs_is_int := lhs_val.(*IntVal)
 	rhs_intvar, rhs_is_int := rhs_val.(*IntVal)
 	if !(lhs_is_int && rhs_is_int) {
 		panic(fmt.Sprintf("Line %d: Lessthan operator must be applied between two integer values", node.Line_num))
 	}
-	return &BoolVal{val: lhs_intvar.val < rhs_intvar.val}
+	return &BoolVal{Val: lhs_intvar.Val < rhs_intvar.Val}
 }
 
 func (interpreter *ImpInterpreter) eval_GreaterthanExpr(node GreaterthanExpr) ImpValues {
-	lhs_val := interpreter.eval_Expr(node.lhs)
-	rhs_val := interpreter.eval_Expr(node.rhs)
+	lhs_val := interpreter.eval_Expr(node.Lhs)
+	rhs_val := interpreter.eval_Expr(node.Rhs)
 	lhs_intvar, lhs_is_int := lhs_val.(*IntVal)
 	rhs_intvar, rhs_is_int := rhs_val.(*IntVal)
 	if !(lhs_is_int && rhs_is_int) {
 		panic(fmt.Sprintf("Line %d: Greaterthan operator must be applied between two integer values", node.Line_num))
 	}
-	return &BoolVal{val: lhs_intvar.val > rhs_intvar.val}
+	return &BoolVal{Val: lhs_intvar.Val > rhs_intvar.Val}
 }
 
 func (interpreter *ImpInterpreter) eval_LeqExpr(node LeqExpr) ImpValues {
-	lhs_val := interpreter.eval_Expr(node.lhs)
-	rhs_val := interpreter.eval_Expr(node.rhs)
+	lhs_val := interpreter.eval_Expr(node.Lhs)
+	rhs_val := interpreter.eval_Expr(node.Rhs)
 	lhs_intvar, lhs_is_int := lhs_val.(*IntVal)
 	rhs_intvar, rhs_is_int := rhs_val.(*IntVal)
 	if !(lhs_is_int && rhs_is_int) {
 		panic(fmt.Sprintf("Line %d: Leq operator must be applied between two integer values", node.Line_num))
 	}
-	return &BoolVal{val: lhs_intvar.val <= rhs_intvar.val}
+	return &BoolVal{Val: lhs_intvar.Val <= rhs_intvar.Val}
 }
 
 func (interpreter *ImpInterpreter) eval_GeqExpr(node GeqExpr) ImpValues {
-	lhs_val := interpreter.eval_Expr(node.lhs)
-	rhs_val := interpreter.eval_Expr(node.rhs)
+	lhs_val := interpreter.eval_Expr(node.Lhs)
+	rhs_val := interpreter.eval_Expr(node.Rhs)
 	lhs_intvar, lhs_is_int := lhs_val.(*IntVal)
 	rhs_intvar, rhs_is_int := rhs_val.(*IntVal)
 	if !(lhs_is_int && rhs_is_int) {
 		panic(fmt.Sprintf("Line %d: Geq operator must be applied between two integer values", node.Line_num))
 	}
-	return &BoolVal{val: lhs_intvar.val >= rhs_intvar.val}
+	return &BoolVal{Val: lhs_intvar.Val >= rhs_intvar.Val}
 }
 
 func (interpreter *ImpInterpreter) eval_NegExpr(node NegExpr) ImpValues {
-	subexpr_val, subexpr_is_int := interpreter.eval_Expr(node.subexpr).(*IntVal)
+	subexpr_val, subexpr_is_int := interpreter.eval_Expr(node.Subexpr).(*IntVal)
 	if !subexpr_is_int {
-		panic(fmt.Sprintf("Line %d: Subexpr %s of Unary neg operator should be of type int", node.Line_num, node.subexpr))
+		panic(fmt.Sprintf("Line %d: Subexpr %s of Unary neg operator should be of type int", node.Line_num, node.Subexpr))
 	}
-	return &IntVal{val: -subexpr_val.val}
+	return &IntVal{Val: -subexpr_val.Val}
 }
 
 func (interpreter *ImpInterpreter) eval_NotExpr(node NotExpr) ImpValues {
-	subexpr_val, subexpr_is_bool := interpreter.eval_Expr(node.subexpr).(*BoolVal)
+	subexpr_val, subexpr_is_bool := interpreter.eval_Expr(node.Subexpr).(*BoolVal)
 	if !subexpr_is_bool {
-		panic(fmt.Sprintf("Line %d: Subexpr %s of NOT operator should be of type bool", node.Line_num, node.subexpr))
+		panic(fmt.Sprintf("Line %d: Subexpr %s of NOT operator should be of type bool", node.Line_num, node.Subexpr))
 	}
-	return &BoolVal{val: !subexpr_val.val}
+	return &BoolVal{Val: !subexpr_val.Val}
 }
 
 func (interpreter *ImpInterpreter) eval_AndExpr(node AndExpr) ImpValues {
-	lhs_val, lhs_is_bool := interpreter.eval_Expr(node.lhs).(*BoolVal)
-	rhs_val, rhs_is_bool := interpreter.eval_Expr(node.rhs).(*BoolVal)
+	lhs_val, lhs_is_bool := interpreter.eval_Expr(node.Lhs).(*BoolVal)
+	rhs_val, rhs_is_bool := interpreter.eval_Expr(node.Rhs).(*BoolVal)
 
 	if !lhs_is_bool {
-		panic(fmt.Sprintf("Line %d: LHS of AND should be a bool value, but got '%s'", node.Line_num, node.lhs))
+		panic(fmt.Sprintf("Line %d: LHS of AND should be a bool value, but got '%s'", node.Line_num, node.Lhs))
 	}
 
 	if !rhs_is_bool {
-		panic(fmt.Sprintf("Line %d: RHS of AND should be a bool value, but got '%s'", node.Line_num, node.rhs))
+		panic(fmt.Sprintf("Line %d: RHS of AND should be a bool value, but got '%s'", node.Line_num, node.Rhs))
 	}
-	return &BoolVal{val: lhs_val.val && rhs_val.val}
+	return &BoolVal{Val: lhs_val.Val && rhs_val.Val}
 }
 
 func (interpreter *ImpInterpreter) eval_OrExpr(node OrExpr) ImpValues {
-	lhs_val, lhs_is_bool := interpreter.eval_Expr(node.lhs).(*BoolVal)
-	rhs_val, rhs_is_bool := interpreter.eval_Expr(node.rhs).(*BoolVal)
+	lhs_val, lhs_is_bool := interpreter.eval_Expr(node.Lhs).(*BoolVal)
+	rhs_val, rhs_is_bool := interpreter.eval_Expr(node.Rhs).(*BoolVal)
 
 	if !lhs_is_bool {
-		panic(fmt.Sprintf("Line %d: LHS of OR should be a bool value, but got '%s'", node.Line_num, node.lhs))
+		panic(fmt.Sprintf("Line %d: LHS of OR should be a bool value, but got '%s'", node.Line_num, node.Lhs))
 	}
 
 	if !rhs_is_bool {
-		panic(fmt.Sprintf("Line %d: RHS of OR should be a bool value, but got '%s'", node.Line_num, node.rhs))
+		panic(fmt.Sprintf("Line %d: RHS of OR should be a bool value, but got '%s'", node.Line_num, node.Rhs))
 	}
-	return &BoolVal{val: lhs_val.val || rhs_val.val}
+	return &BoolVal{Val: lhs_val.Val || rhs_val.Val}
 }
 
 // Imp is pass-by-value for int/bool, but arrays are passed references
@@ -354,9 +354,9 @@ func (interpreter *ImpInterpreter) eval_function_call(func_name string, args []E
 	prepare_args := func(arg ImpValues) ImpValues {
 		switch arg_ty := arg.(type) {
 		case *IntVal:
-			return &IntVal{val: arg_ty.val}
+			return &IntVal{Val: arg_ty.Val}
 		case *BoolVal:
-			return &BoolVal{val: arg_ty.val}
+			return &BoolVal{Val: arg_ty.Val}
 		case *ArrayVal:
 			return arg
 		}
@@ -370,10 +370,10 @@ func (interpreter *ImpInterpreter) eval_function_call(func_name string, args []E
 	for index, arg_expr := range args {
 		arg_info := imp_function.Arg_pairs[index]
 		arg_val := prepare_args(interpreter.eval_Expr(arg_expr))
-		if !check_val_type_match(arg_val, arg_info.arg_type) {
-			panic(fmt.Sprintf("Line %d: Argument '%s' of function '%s' is defined as type %s, but passed expr '%s' of type %s", line_num, arg_info.name, func_name, arg_info.arg_type, arg_expr, get_type(arg_val)))
+		if !check_val_type_match(arg_val, arg_info.Arg_type) {
+			panic(fmt.Sprintf("Line %d: Argument '%s' of function '%s' is defined as type %s, but passed expr '%s' of type %s", line_num, arg_info.Name, func_name, arg_info.Arg_type, arg_expr, get_type(arg_val)))
 		}
-		func_local_state.vars[arg_info.name] = arg_val
+		func_local_state.vars[arg_info.Name] = arg_val
 	}
 	interpreter.push_state(func_local_state)
 	interpreter.eval_Stmt(imp_function.Body)
@@ -384,30 +384,30 @@ func (interpreter *ImpInterpreter) eval_function_call(func_name string, args []E
 }
 
 func (interpreter *ImpInterpreter) eval_CallExpr(node CallExpr) ImpValues {
-	return interpreter.eval_function_call(node.func_name, node.args, node.Line_num)
+	return interpreter.eval_function_call(node.Func_name, node.Args, node.Line_num)
 }
 
 func (interpreter *ImpInterpreter) eval_MakeArrayExpr(node MakeArrayExpr) ImpValues {
-	len_node := interpreter.eval_Expr(node.size)
+	len_node := interpreter.eval_Expr(node.Size)
 	len_intval, len_is_int := len_node.(*IntVal)
 	if !len_is_int {
-		panic(fmt.Sprintf("Line %d: %s - length expression %s is not an integer value", node.Line_num, node, node.size))
+		panic(fmt.Sprintf("Line %d: %s - length expression %s is not an integer value", node.Line_num, node, node.Size))
 	}
-	default_val := interpreter.eval_Expr(node.value)
-	generated := make([]ImpValues, len_intval.val)
-	for i := 0; i < len_intval.val; i++ {
+	default_val := interpreter.eval_Expr(node.Value)
+	generated := make([]ImpValues, len_intval.Val)
+	for i := 0; i < len_intval.Val; i++ {
 		generated[i] = interpreter.deepcopy_impvalue(default_val)
 	}
 	return &ArrayVal{get_type(default_val), generated}
 }
 
 func (interpreter *ImpInterpreter) eval_LenExpr(node LenExpr) ImpValues {
-	array_node := interpreter.eval_Expr(node.subexpr)
+	array_node := interpreter.eval_Expr(node.Subexpr)
 	array_val, is_array := array_node.(*ArrayVal)
 	if !is_array {
-		panic(fmt.Sprintf("Line %d: len() - Non-array value %s passed to len()", node.Line_num, node.subexpr))
+		panic(fmt.Sprintf("Line %d: len() - Non-array value %s passed to len()", node.Line_num, node.Subexpr))
 	}
-	return &IntVal{val: len(array_val.val)}
+	return &IntVal{Val: len(array_val.Val)}
 }
 
 func (interpreter *ImpInterpreter) eval_Expr(node Expr) ImpValues {
@@ -473,56 +473,56 @@ func (interpreter *ImpInterpreter) eval_SkipStmt(SkipStmt) ControlflowResult {
 }
 
 func (interpreter *ImpInterpreter) eval_AssignStmt(node AssignStmt) ControlflowResult {
-	rhs_val := interpreter.eval_Expr(node.rhs)
-	switch lhs_loc := interpreter.eval_Expr_lvalue(node.lhs, get_type(rhs_val)).(type) {
+	rhs_val := interpreter.eval_Expr(node.Rhs)
+	switch lhs_loc := interpreter.eval_Expr_lvalue(node.Lhs, get_type(rhs_val)).(type) {
 	case *IntVal:
 		rhs_intval, rhs_is_intval := rhs_val.(*IntVal)
 		if !rhs_is_intval {
-			panic(fmt.Sprintf("Line %d: Attempted to assign RHS '%s' of type %s to LHS '%s' of type %s", node.Line_num, node.rhs, get_type(rhs_val), node.lhs, get_type(lhs_loc)))
+			panic(fmt.Sprintf("Line %d: Attempted to assign RHS '%s' of type %s to LHS '%s' of type %s", node.Line_num, node.Rhs, get_type(rhs_val), node.Lhs, get_type(lhs_loc)))
 		}
-		lhs_loc.val = rhs_intval.val
+		lhs_loc.Val = rhs_intval.Val
 	case *BoolVal:
 		rhs_boolval, rhs_is_boolval := rhs_val.(*BoolVal)
 		if !rhs_is_boolval {
-			panic(fmt.Sprintf("Line %d: Attempted to assign RHS '%s' of type %s to LHS '%s' of type %s", node.Line_num, node.rhs, get_type(rhs_val), node.lhs, get_type(lhs_loc)))
+			panic(fmt.Sprintf("Line %d: Attempted to assign RHS '%s' of type %s to LHS '%s' of type %s", node.Line_num, node.Rhs, get_type(rhs_val), node.Lhs, get_type(lhs_loc)))
 		}
-		lhs_loc.val = rhs_boolval.val
+		lhs_loc.Val = rhs_boolval.Val
 	case *ArrayVal:
 		rhs_arrval, rhs_is_arrayval := rhs_val.(*ArrayVal)
 		if !rhs_is_arrayval {
-			panic(fmt.Sprintf("Line %d: Attempted to assign RHS '%s' of type %s to LHS '%s' of type %s", node.Line_num, node.rhs, get_type(rhs_val), node.lhs, get_type(lhs_loc)))
+			panic(fmt.Sprintf("Line %d: Attempted to assign RHS '%s' of type %s to LHS '%s' of type %s", node.Line_num, node.Rhs, get_type(rhs_val), node.Lhs, get_type(lhs_loc)))
 		}
-		lhs_loc.val = rhs_arrval.val
+		lhs_loc.Val = rhs_arrval.Val
 	default:
-		panic(fmt.Sprintf("Line %d: LHS expr '%s' has unresolved value type %T\n", node.Line_num, node.lhs, lhs_loc))
+		panic(fmt.Sprintf("Line %d: LHS expr '%s' has unresolved value type %T\n", node.Line_num, node.Lhs, lhs_loc))
 	}
 	return ControlNormal
 }
 
 func (interpreter *ImpInterpreter) eval_IfElseStmt(node IfElseStmt) ControlflowResult {
-	cond_val := interpreter.eval_Expr(node.cond)
+	cond_val := interpreter.eval_Expr(node.Cond)
 	cond_boolval, cond_is_bool := cond_val.(*BoolVal)
 	if !cond_is_bool {
-		panic(fmt.Sprintf("Line %d: If statement got non-boolean condition '%s'\n", node.Line_num, node.cond))
+		panic(fmt.Sprintf("Line %d: If statement got non-boolean condition '%s'\n", node.Line_num, node.Cond))
 	}
-	if cond_boolval.val {
-		return interpreter.eval_Stmt(node.true_stmt)
+	if cond_boolval.Val {
+		return interpreter.eval_Stmt(node.True_stmt)
 	} else {
-		return interpreter.eval_Stmt(node.false_stmt)
+		return interpreter.eval_Stmt(node.False_stmt)
 	}
 }
 
 func (interpreter *ImpInterpreter) eval_WhileStmt(node WhileStmt) ControlflowResult {
 	for true {
-		cond_val := interpreter.eval_Expr(node.cond)
+		cond_val := interpreter.eval_Expr(node.Cond)
 		cond_boolval, cond_is_bool := cond_val.(*BoolVal)
 		if !cond_is_bool {
-			panic(fmt.Sprintf("Line %d: While statement got non-boolean condition '%s'\n", node.Line_num, node.cond))
+			panic(fmt.Sprintf("Line %d: While statement got non-boolean condition '%s'\n", node.Line_num, node.Cond))
 		}
-		if cond_boolval.val == false {
+		if cond_boolval.Val == false {
 			break
 		}
-		stmt_result := interpreter.eval_Stmt(node.body_stmt)
+		stmt_result := interpreter.eval_Stmt(node.Body_stmt)
 		switch stmt_result {
 		case ControlBreak:
 			return ControlNormal
@@ -544,31 +544,31 @@ func (interpreter *ImpInterpreter) eval_ContinueStmt(_ ContinueStmt) Controlflow
 }
 
 func (interpreter *ImpInterpreter) eval_IncStmt(node IncStmt) ControlflowResult {
-	lhs_val_int, lhs_is_int := interpreter.eval_Expr(node.subexpr).(*IntVal)
+	lhs_val_int, lhs_is_int := interpreter.eval_Expr(node.Subexpr).(*IntVal)
 	if !lhs_is_int {
 		panic(fmt.Sprintf("Line %d: Attempted to increment non-integer value '%s'\n", node.Line_num, node))
 	}
-	lhs_val_int.val++
+	lhs_val_int.Val++
 	return ControlNormal
 }
 
 func (interpreter *ImpInterpreter) eval_DecStmt(node DecStmt) ControlflowResult {
-	lhs_val_int, lhs_is_int := interpreter.eval_Expr(node.subexpr).(*IntVal)
+	lhs_val_int, lhs_is_int := interpreter.eval_Expr(node.Subexpr).(*IntVal)
 	if !lhs_is_int {
 		panic(fmt.Sprintf("Line %d: Attempted to decrement non-integer value '%s'\n", node.Line_num, node))
 	}
-	lhs_val_int.val--
+	lhs_val_int.Val--
 	return ControlNormal
 }
 
 func (interpreter *ImpInterpreter) eval_CallStmt(node CallStmt) ControlflowResult {
-	interpreter.eval_function_call(node.func_name, node.args, node.Line_num)
+	interpreter.eval_function_call(node.Func_name, node.Args, node.Line_num)
 	return ControlNormal
 }
 
 func (interpreter *ImpInterpreter) eval_PrintStmt(node PrintStmt) ControlflowResult {
 	var outputs []string
-	for _, arg := range node.args {
+	for _, arg := range node.Args {
 		arg_val := interpreter.eval_Expr(arg)
 		outputs = append(outputs, fmt.Sprintf("%s", arg_val))
 	}
@@ -577,35 +577,35 @@ func (interpreter *ImpInterpreter) eval_PrintStmt(node PrintStmt) ControlflowRes
 }
 
 func (interpreter *ImpInterpreter) eval_ScanfStmt(node ScanfStmt) ControlflowResult {
-	for index, fmt_str := range strings.Split(node.format_string, " ") {
+	for index, fmt_str := range strings.Split(node.Format_string, " ") {
 		var imp_val ImpValues
 		switch fmt_str {
 		case "%d":
 			var input int
 			fmt.Scanf(fmt_str, &input)
-			imp_val = &IntVal{val: input}
+			imp_val = &IntVal{Val: input}
 		case "%t":
 			var input bool
 			fmt.Scanf(fmt_str, &input)
-			imp_val = &BoolVal{val: input}
+			imp_val = &BoolVal{Val: input}
 		default:
 			panic(fmt.Sprintf("Line %d: scanf - Unsupported formatting specifier %s\n", node.Line_num, fmt_str))
 		}
 
-		lhs_val := node.assign_locations[index]
+		lhs_val := node.Assign_locations[index]
 		switch lhs_loc := interpreter.eval_Expr_lvalue(lhs_val, get_type(imp_val)).(type) {
 		case *IntVal:
 			rhs_intval, rhs_is_intval := imp_val.(*IntVal)
 			if !rhs_is_intval {
 				panic(fmt.Sprintf("Line %d: scanf - Attempted to assign input '%s' of type %T to variable '%s' of type %T\n", node.Line_num, imp_val, imp_val, lhs_val, lhs_loc))
 			}
-			lhs_loc.val = rhs_intval.val
+			lhs_loc.Val = rhs_intval.Val
 		case *BoolVal:
 			rhs_intval, rhs_is_boolval := imp_val.(*BoolVal)
 			if !rhs_is_boolval {
 				panic(fmt.Sprintf("Line %d: scanf - Attempted to assign input '%s' of type %T to variable '%s' of type %T\n", node.Line_num, imp_val, imp_val, lhs_val, lhs_loc))
 			}
-			lhs_loc.val = rhs_intval.val
+			lhs_loc.Val = rhs_intval.Val
 		}
 	}
 	return ControlNormal
@@ -613,11 +613,11 @@ func (interpreter *ImpInterpreter) eval_ScanfStmt(node ScanfStmt) ControlflowRes
 
 func (interpreter *ImpInterpreter) eval_ReturnStmt(node ReturnStmt) ControlflowResult {
 	top_state := interpreter.get_top_state()
-	top_state.return_value = interpreter.eval_Expr(node.arg)
+	top_state.return_value = interpreter.eval_Expr(node.Arg)
 	if top_state.current_function_name != "" {
 		expected_return_type := interpreter.Functions[top_state.current_function_name].Return_type
 		if !check_val_type_match(top_state.return_value, expected_return_type) {
-			panic(fmt.Sprintf("Line %d: Function %s should return value of type %s, but actually returned '%s' of type %s\n", node.Line_num, top_state.current_function_name, expected_return_type, node.arg, top_state.return_value))
+			panic(fmt.Sprintf("Line %d: Function %s should return value of type %s, but actually returned '%s' of type %s\n", node.Line_num, top_state.current_function_name, expected_return_type, node.Arg, top_state.return_value))
 		}
 	}
 	return ControlReturn

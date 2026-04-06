@@ -56,9 +56,9 @@ func (nh *Go2ImpTranslator) translate_BasicLit(expr *ast.BasicLit) Expr {
 		if err != nil {
 			panic(fmt.Sprintf("go2imp translate_BasicLit: Error while translating %s: %s", nodeString(expr), err))
 		}
-		return &IntLitExpr{Node: Node{nh.get_ast_linenum(expr)}, value: i}
+		return &IntLitExpr{Node: Node{nh.get_ast_linenum(expr)}, Value: i}
 	case token.STRING:
-		return &StringLitExpr{Node: nh.create_node_struct_from_ast(expr), value: strings.Trim(strings.ReplaceAll(expr.Value, "\\n", "\n"), "\"")}
+		return &StringLitExpr{Node: nh.create_node_struct_from_ast(expr), Value: strings.Trim(strings.ReplaceAll(expr.Value, "\\n", "\n"), "\"")}
 	default:
 		panic(fmt.Sprintf("go2imp translate_BasicLit: Unsupported literal '%s'", nodeString(expr)))
 	}
@@ -70,29 +70,29 @@ func (nh *Go2ImpTranslator) translate_BinaryExpr(expr *ast.BinaryExpr) Expr {
 	node := nh.create_node_struct_from_ast(expr)
 	switch expr.Op {
 	case token.ADD:
-		return &AddExpr{Node: node, lhs: lhs_expr, rhs: rhs_expr}
+		return &AddExpr{Node: node, Lhs: lhs_expr, Rhs: rhs_expr}
 	case token.SUB:
-		return &SubExpr{Node: node, lhs: lhs_expr, rhs: rhs_expr}
+		return &SubExpr{Node: node, Lhs: lhs_expr, Rhs: rhs_expr}
 	case token.MUL:
-		return &MulExpr{Node: node, lhs: lhs_expr, rhs: rhs_expr}
+		return &MulExpr{Node: node, Lhs: lhs_expr, Rhs: rhs_expr}
 	case token.QUO:
-		return &DivExpr{Node: node, lhs: lhs_expr, rhs: rhs_expr}
+		return &DivExpr{Node: node, Lhs: lhs_expr, Rhs: rhs_expr}
 	case token.LAND:
-		return &AndExpr{Node: node, lhs: lhs_expr, rhs: rhs_expr}
+		return &AndExpr{Node: node, Lhs: lhs_expr, Rhs: rhs_expr}
 	case token.LOR:
-		return &OrExpr{Node: node, lhs: lhs_expr, rhs: rhs_expr}
+		return &OrExpr{Node: node, Lhs: lhs_expr, Rhs: rhs_expr}
 	case token.EQL:
-		return &EqExpr{Node: node, lhs: lhs_expr, rhs: rhs_expr}
+		return &EqExpr{Node: node, Lhs: lhs_expr, Rhs: rhs_expr}
 	case token.NEQ:
-		return &NeqExpr{Node: node, lhs: lhs_expr, rhs: rhs_expr}
+		return &NeqExpr{Node: node, Lhs: lhs_expr, Rhs: rhs_expr}
 	case token.LSS:
-		return &LessthanExpr{Node: node, lhs: lhs_expr, rhs: rhs_expr}
+		return &LessthanExpr{Node: node, Lhs: lhs_expr, Rhs: rhs_expr}
 	case token.GTR:
-		return &GreaterthanExpr{Node: node, lhs: lhs_expr, rhs: rhs_expr}
+		return &GreaterthanExpr{Node: node, Lhs: lhs_expr, Rhs: rhs_expr}
 	case token.LEQ:
-		return &LeqExpr{Node: node, lhs: lhs_expr, rhs: rhs_expr}
+		return &LeqExpr{Node: node, Lhs: lhs_expr, Rhs: rhs_expr}
 	case token.GEQ:
-		return &GeqExpr{Node: node, lhs: lhs_expr, rhs: rhs_expr}
+		return &GeqExpr{Node: node, Lhs: lhs_expr, Rhs: rhs_expr}
 	default:
 		panic(fmt.Sprintf("go2imp: Unsupported token.Token %s", expr.Op))
 	}
@@ -112,14 +112,14 @@ func (nh *Go2ImpTranslator) translate_CallExpr(expr *ast.CallExpr) Expr {
 		if len(translated_args) != 2 {
 			panic(fmt.Sprintf("go2imp: make_array() expects 2 arguments, but got %d", len(translated_args)))
 		}
-		return &MakeArrayExpr{Node: nh.create_node_struct_from_ast(expr), size: translated_args[0], value: translated_args[1]}
+		return &MakeArrayExpr{Node: nh.create_node_struct_from_ast(expr), Size: translated_args[0], Value: translated_args[1]}
 	case "len":
 		if len(translated_args) != 1 {
 			panic(fmt.Sprintf("go2imp: len() expects 2 arguments, but got %d", len(translated_args)))
 		}
-		return &LenExpr{Node: nh.create_node_struct_from_ast(expr), subexpr: translated_args[0]}
+		return &LenExpr{Node: nh.create_node_struct_from_ast(expr), Subexpr: translated_args[0]}
 	}
-	return &CallExpr{Node: nh.create_node_struct_from_ast(expr), func_name: func_ident.Name, args: translated_args}
+	return &CallExpr{Node: nh.create_node_struct_from_ast(expr), Func_name: func_ident.Name, Args: translated_args}
 }
 
 func (nh *Go2ImpTranslator) translate_CompositeLit(expr *ast.CompositeLit) Expr {
@@ -127,36 +127,36 @@ func (nh *Go2ImpTranslator) translate_CompositeLit(expr *ast.CompositeLit) Expr 
 	for _, elem_node := range expr.Elts {
 		translated_elements = append(translated_elements, nh.translate_Expr(&elem_node))
 	}
-	return &ArrayLitExpr{Node: nh.create_node_struct_from_ast(expr), elements: translated_elements}
+	return &ArrayLitExpr{Node: nh.create_node_struct_from_ast(expr), Elements: translated_elements}
 }
 
 func (nh *Go2ImpTranslator) translate_Ident(expr *ast.Ident) Expr {
 	switch expr.Name {
 	case "true":
-		return &BoolLitExpr{Node: nh.create_node_struct_from_ast(expr), value: true}
+		return &BoolLitExpr{Node: nh.create_node_struct_from_ast(expr), Value: true}
 	case "false":
-		return &BoolLitExpr{Node: nh.create_node_struct_from_ast(expr), value: false}
+		return &BoolLitExpr{Node: nh.create_node_struct_from_ast(expr), Value: false}
 	}
-	return &VarExpr{Node: nh.create_node_struct_from_ast(expr), name: expr.Name}
+	return &VarExpr{Node: nh.create_node_struct_from_ast(expr), Name: expr.Name}
 }
 
 func (nh *Go2ImpTranslator) translate_IndexExpr(expr *ast.IndexExpr) Expr {
 	base_expr := nh.translate_Expr(&expr.X)
 	index_expr := nh.translate_Expr(&expr.Index)
-	return &ArrayIndexExpr{Node: nh.create_node_struct_from_ast(expr), base: base_expr, index: index_expr}
+	return &ArrayIndexExpr{Node: nh.create_node_struct_from_ast(expr), Base: base_expr, Index: index_expr}
 }
 
 func (nh *Go2ImpTranslator) translate_ParenExpr(expr *ast.ParenExpr) Expr {
 	subexpr := nh.translate_Expr(&expr.X)
-	return &ParenExpr{Node: nh.create_node_struct_from_ast(expr), subexpr: subexpr}
+	return &ParenExpr{Node: nh.create_node_struct_from_ast(expr), Subexpr: subexpr}
 }
 
 func (nh *Go2ImpTranslator) translate_UnaryExpr(expr *ast.UnaryExpr) Expr {
 	switch expr.Op {
 	case token.NOT:
-		return &NotExpr{Node: nh.create_node_struct_from_ast(expr), subexpr: nh.translate_Expr(&expr.X)}
+		return &NotExpr{Node: nh.create_node_struct_from_ast(expr), Subexpr: nh.translate_Expr(&expr.X)}
 	case token.SUB:
-		return &NegExpr{Node: nh.create_node_struct_from_ast(expr), subexpr: nh.translate_Expr(&expr.X)}
+		return &NegExpr{Node: nh.create_node_struct_from_ast(expr), Subexpr: nh.translate_Expr(&expr.X)}
 	default:
 		panic(fmt.Sprintf("go2imp: Unsupported unary operator type '%s'\n", expr.Op))
 	}
@@ -189,7 +189,7 @@ func (nh *Go2ImpTranslator) translate_AssignStmt(stmt *ast.AssignStmt) []Stmt {
 	if !(len(stmt.Lhs) == len(stmt.Rhs) && len(stmt.Lhs) == 1) {
 		panic("go2imp: Number of LHS and RHS expressions in an assignment must be 1\n")
 	}
-	return []Stmt{&AssignStmt{Node: nh.create_node_struct_from_ast(stmt), lhs: nh.translate_Expr(&stmt.Lhs[0]), rhs: nh.translate_Expr(&stmt.Rhs[0])}}
+	return []Stmt{&AssignStmt{Node: nh.create_node_struct_from_ast(stmt), Lhs: nh.translate_Expr(&stmt.Lhs[0]), Rhs: nh.translate_Expr(&stmt.Rhs[0])}}
 }
 
 func (nh *Go2ImpTranslator) translate_BlockStmt(stmt *ast.BlockStmt) []Stmt {
@@ -220,7 +220,7 @@ func (nh *Go2ImpTranslator) translate_ExprStmt(stmt *ast.ExprStmt) []Stmt {
 		if !format_string_is_string {
 			panic("go2imp: First argument of Scanf/fmt.Scanf must be a string literal")
 		}
-		return &ScanfStmt{Node: nh.create_node_struct_from_ast(stmt), format_string: format_string_impexpr.value, assign_locations: translated_args[1:]}
+		return &ScanfStmt{Node: nh.create_node_struct_from_ast(stmt), Format_string: format_string_impexpr.Value, Assign_locations: translated_args[1:]}
 	}
 
 	func_ident, func_is_ident := call_subexpr.Fun.(*ast.Ident)
@@ -229,7 +229,7 @@ func (nh *Go2ImpTranslator) translate_ExprStmt(stmt *ast.ExprStmt) []Stmt {
 		if func_is_selector && func_selectorexpr.Sel.Name == "Scanf" {
 			return []Stmt{create_scanf()}
 		} else if func_is_selector && func_selectorexpr.Sel.Name == "Print" {
-			return []Stmt{&PrintStmt{Node: nh.create_node_struct_from_ast(stmt), args: translated_args}}
+			return []Stmt{&PrintStmt{Node: nh.create_node_struct_from_ast(stmt), Args: translated_args}}
 		}
 		panic("go2imp: Only idents or fmt.Scanf/fmt.Print are allowed as functions in ast.CallExpr")
 	}
@@ -237,9 +237,9 @@ func (nh *Go2ImpTranslator) translate_ExprStmt(stmt *ast.ExprStmt) []Stmt {
 	case "Scanf":
 		return []Stmt{create_scanf()}
 	case "Printf":
-		return []Stmt{&PrintStmt{Node: nh.create_node_struct_from_ast(stmt), args: translated_args}}
+		return []Stmt{&PrintStmt{Node: nh.create_node_struct_from_ast(stmt), Args: translated_args}}
 	default:
-		return []Stmt{&CallStmt{Node: nh.create_node_struct_from_ast(stmt), func_name: func_ident.Name, args: translated_args}}
+		return []Stmt{&CallStmt{Node: nh.create_node_struct_from_ast(stmt), Func_name: func_ident.Name, Args: translated_args}}
 	}
 }
 
@@ -253,7 +253,7 @@ func (nh *Go2ImpTranslator) translate_ForStmt(stmt *ast.ForStmt) []Stmt {
 	if stmt.Post != nil {
 		body_stmt = slices.Concat(body_stmt, nh.translate_Stmt(stmt.Post))
 	}
-	return append(init_stmts, &WhileStmt{Node: nh.create_node_struct_from_ast(stmt), cond: cond_expr, body_stmt: body_stmt})
+	return append(init_stmts, &WhileStmt{Node: nh.create_node_struct_from_ast(stmt), Cond: cond_expr, Body_stmt: body_stmt})
 }
 
 func (nh *Go2ImpTranslator) translate_IfStmt(stmt *ast.IfStmt) []Stmt {
@@ -262,15 +262,15 @@ func (nh *Go2ImpTranslator) translate_IfStmt(stmt *ast.IfStmt) []Stmt {
 		else_stmts = nh.translate_Stmt(stmt.Else)
 	}
 	true_stmts := nh.translate_Stmt(stmt.Body)
-	return []Stmt{&IfElseStmt{Node: nh.create_node_struct_from_ast(stmt), cond: nh.translate_Expr(&stmt.Cond), true_stmt: true_stmts, false_stmt: else_stmts}}
+	return []Stmt{&IfElseStmt{Node: nh.create_node_struct_from_ast(stmt), Cond: nh.translate_Expr(&stmt.Cond), True_stmt: true_stmts, False_stmt: else_stmts}}
 }
 
 func (nh *Go2ImpTranslator) translate_IncDecStmt(stmt *ast.IncDecStmt) []Stmt {
 	switch stmt.Tok {
 	case token.INC:
-		return []Stmt{&IncStmt{Node: nh.create_node_struct_from_ast(stmt), subexpr: nh.translate_Expr(&stmt.X)}}
+		return []Stmt{&IncStmt{Node: nh.create_node_struct_from_ast(stmt), Subexpr: nh.translate_Expr(&stmt.X)}}
 	case token.DEC:
-		return []Stmt{&DecStmt{Node: nh.create_node_struct_from_ast(stmt), subexpr: nh.translate_Expr(&stmt.X)}}
+		return []Stmt{&DecStmt{Node: nh.create_node_struct_from_ast(stmt), Subexpr: nh.translate_Expr(&stmt.X)}}
 	default:
 		panic(fmt.Sprintf("go2imp: Unsupported IncDecStmt token '%s'\n", stmt.Tok))
 	}
@@ -280,7 +280,7 @@ func (nh *Go2ImpTranslator) translate_ReturnStmt(stmt *ast.ReturnStmt) []Stmt {
 	if len(stmt.Results) != 1 {
 		panic(fmt.Sprintf("go2imp: only a single return expression allowed, but return returns %d exprs at line %d\n", len(stmt.Results), nh.get_ast_linenum(stmt)))
 	}
-	return []Stmt{&ReturnStmt{Node: nh.create_node_struct_from_ast(stmt), arg: nh.translate_Expr(&stmt.Results[0])}}
+	return []Stmt{&ReturnStmt{Node: nh.create_node_struct_from_ast(stmt), Arg: nh.translate_Expr(&stmt.Results[0])}}
 }
 
 func (nh *Go2ImpTranslator) translate_BranchStmt(stmt *ast.BranchStmt) []Stmt {
@@ -332,7 +332,7 @@ func Translate_ast_file_to_imp(go_input_file *ast.File, fset *token.FileSet) map
 				if len(field.Names) != 1 {
 					panic("go2imp: Function arguments must be individually defined")
 				}
-				func_argpairs = append(func_argpairs, ArgPair{name: field.Names[0].Name, arg_type: translator.translate_ast_node_as_ImpType(field.Type)})
+				func_argpairs = append(func_argpairs, ArgPair{Name: field.Names[0].Name, Arg_type: translator.translate_ast_node_as_ImpType(field.Type)})
 			}
 			var return_type ImpTypes = NoneType{}
 			if func_decl.Type.Results != nil {
