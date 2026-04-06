@@ -5,13 +5,14 @@ package main
 import "fmt"
 
 func main() {
-	var x int
-	fmt.Scan(&x)
+	x := 0
+	fmt.Print("Enter a number: ")
+	fmt.Scanf("%d", x)
 	if x < 0 {
 		x = -x + 100
-		fmt.Println("got negative")
+		fmt.Print("got negative")
 	} else {
 		x = -x
 	}
-	fmt.Println(x)
+	fmt.Print("result is", x, "\n")
 }

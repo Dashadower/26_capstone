@@ -11,6 +11,16 @@ type ImpState struct {
 	return_value          ImpValues // The return value of the current local scope, if exists
 }
 
+// This designates the control flow result of executing statements
+type ControlflowResult int
+
+const (
+	ControlNormal ControlflowResult = iota
+	ControlBreak
+	ControlContinue
+	ControlReturn
+)
+
 type ImpInterpreter struct {
 	States    []*ImpState // a stack of program states to represent scopes
 	Functions map[string]ImpFunction
@@ -100,7 +110,7 @@ func (interpreter *ImpInterpreter) eval_ArrayLitExpr(node ArrayLitExpr) ImpValue
 		}
 		elem_vals = append(elem_vals, elem_val)
 	}
-	return &ArrayVal{element_type: elem_type, val: elem_vals}
+	return &ArrayVal{val: elem_vals}
 }
 
 func (interpreter *ImpInterpreter) eval_AddExpr(node AddExpr) ImpValues {
@@ -179,7 +189,7 @@ func (interpreter *ImpInterpreter) eval_EqExpr(node EqExpr) ImpValues {
 	lhs_val := interpreter.eval_Expr(node.lhs)
 	rhs_val := interpreter.eval_Expr(node.rhs)
 	if !check_vals_type_equal(lhs_val, rhs_val) {
-		panic(fmt.Sprint("Unsupported '==' between %s and %s"))
+		panic(fmt.Sprintf("Unsupported '==' between %s and %s", lhs_val, rhs_val))
 	}
 	switch lhs_val := lhs_val.(type) {
 	case *IntVal:
@@ -194,7 +204,7 @@ func (interpreter *ImpInterpreter) eval_EqExpr(node EqExpr) ImpValues {
 	case *NoneVal:
 		return &BoolVal{val: true}
 	default:
-		panic(fmt.Sprint("Unsupported '==' between %s and %s"))
+		panic(fmt.Sprintf("Unsupported '==' between %s and %s", lhs_val, rhs_val))
 	}
 }
 
@@ -202,7 +212,7 @@ func (interpreter *ImpInterpreter) eval_NeqExpr(node NeqExpr) ImpValues {
 	lhs_val := interpreter.eval_Expr(node.lhs)
 	rhs_val := interpreter.eval_Expr(node.rhs)
 	if !check_vals_type_equal(lhs_val, rhs_val) {
-		panic(fmt.Sprint("Unsupported '!=' between %s and %s"))
+		panic(fmt.Sprintf("Unsupported '!=' between %s and %s", lhs_val, rhs_val))
 	}
 	switch lhs_val := lhs_val.(type) {
 	case *IntVal:
@@ -217,7 +227,7 @@ func (interpreter *ImpInterpreter) eval_NeqExpr(node NeqExpr) ImpValues {
 	case *NoneVal:
 		return &BoolVal{val: false}
 	default:
-		panic(fmt.Sprint("Unsupported '!=' between %s and %s"))
+		panic(fmt.Sprintf("Unsupported '!=' between %s and %s", lhs_val, rhs_val))
 	}
 }
 
@@ -227,7 +237,7 @@ func (interpreter *ImpInterpreter) eval_LessthanExpr(node LessthanExpr) ImpValue
 	lhs_intvar, lhs_is_int := lhs_val.(*IntVal)
 	rhs_intvar, rhs_is_int := rhs_val.(*IntVal)
 	if !(lhs_is_int && rhs_is_int) {
-		panic(fmt.Sprintf("Lessthan operator must be applied between two integer values"))
+		panic("Lessthan operator must be applied between two integer values")
 	}
 	return &BoolVal{val: lhs_intvar.val < rhs_intvar.val}
 }
@@ -238,7 +248,7 @@ func (interpreter *ImpInterpreter) eval_GreaterthanExpr(node GreaterthanExpr) Im
 	lhs_intvar, lhs_is_int := lhs_val.(*IntVal)
 	rhs_intvar, rhs_is_int := rhs_val.(*IntVal)
 	if !(lhs_is_int && rhs_is_int) {
-		panic(fmt.Sprintf("Greaterthan operator must be applied between two integer values"))
+		panic("Greaterthan operator must be applied between two integer values")
 	}
 	return &BoolVal{val: lhs_intvar.val > rhs_intvar.val}
 }
@@ -249,7 +259,7 @@ func (interpreter *ImpInterpreter) eval_LeqExpr(node LeqExpr) ImpValues {
 	lhs_intvar, lhs_is_int := lhs_val.(*IntVal)
 	rhs_intvar, rhs_is_int := rhs_val.(*IntVal)
 	if !(lhs_is_int && rhs_is_int) {
-		panic(fmt.Sprintf("Leq operator must be applied between two integer values"))
+		panic("Leq operator must be applied between two integer values")
 	}
 	return &BoolVal{val: lhs_intvar.val <= rhs_intvar.val}
 }
@@ -260,9 +270,17 @@ func (interpreter *ImpInterpreter) eval_GeqExpr(node GeqExpr) ImpValues {
 	lhs_intvar, lhs_is_int := lhs_val.(*IntVal)
 	rhs_intvar, rhs_is_int := rhs_val.(*IntVal)
 	if !(lhs_is_int && rhs_is_int) {
-		panic(fmt.Sprintf("Geq operator must be applied between two integer values"))
+		panic("Geq operator must be applied between two integer values")
 	}
 	return &BoolVal{val: lhs_intvar.val >= rhs_intvar.val}
+}
+
+func (interpreter *ImpInterpreter) eval_NegExpr(node NegExpr) ImpValues {
+	subexpr_val, subexpr_is_int := interpreter.eval_Expr(node.subexpr).(*IntVal)
+	if !subexpr_is_int {
+		panic(fmt.Sprintf("Subexpr %s of Unary neg operator should be of type int", node.subexpr))
+	}
+	return &IntVal{val: -subexpr_val.val}
 }
 
 func (interpreter *ImpInterpreter) eval_NotExpr(node NotExpr) ImpValues {
@@ -316,8 +334,12 @@ func (interpreter *ImpInterpreter) eval_function_call(func_name string, args []E
 		panic(fmt.Sprintf("Function call: Unknown arg type %s", arg))
 	}
 	func_local_state := ImpState{vars: make(map[string]ImpValues), current_function_name: func_name, return_value: &NoneVal{}}
+	imp_function, function_exists := interpreter.Functions[func_name]
+	if !function_exists {
+		panic(fmt.Sprintf("Function call: Unknown function '%s'\n", func_name))
+	}
 	for index, arg_expr := range args {
-		arg_info := interpreter.Functions[func_name].Arg_names[index]
+		arg_info := imp_function.Arg_pairs[index]
 		arg_val := prepare_args(interpreter.eval_Expr(arg_expr))
 		if !check_val_type_match(arg_val, arg_info.arg_type) {
 			panic(fmt.Sprintf("Argument '%s' of function '%s' is defined as type %s, but passed expr '%s' of type %s", arg_info.name, func_name, arg_info.arg_type, arg_expr, arg_val))
@@ -325,7 +347,7 @@ func (interpreter *ImpInterpreter) eval_function_call(func_name string, args []E
 		func_local_state.vars[arg_info.name] = arg_val
 	}
 	interpreter.push_state(func_local_state)
-	interpreter.eval_Stmt(interpreter.Functions[func_name].Body)
+	interpreter.eval_Stmt(imp_function.Body)
 	return_value := interpreter.get_top_state().return_value
 	interpreter.pop_state()
 
@@ -389,6 +411,14 @@ func (interpreter *ImpInterpreter) eval_Expr(node Expr) ImpValues {
 		return interpreter.eval_NeqExpr(*node_ty)
 	case *LessthanExpr:
 		return interpreter.eval_LessthanExpr(*node_ty)
+	case *GreaterthanExpr:
+		return interpreter.eval_GreaterthanExpr(*node_ty)
+	case *LeqExpr:
+		return interpreter.eval_LeqExpr(*node_ty)
+	case *GeqExpr:
+		return interpreter.eval_GeqExpr(*node_ty)
+	case *NegExpr:
+		return interpreter.eval_NegExpr(*node_ty)
 	case *NotExpr:
 		return interpreter.eval_NotExpr(*node_ty)
 	case *AndExpr:
@@ -409,9 +439,11 @@ func (interpreter *ImpInterpreter) eval_Expr(node Expr) ImpValues {
 /////////////////////////////////
 // statements
 
-func (interpreter *ImpInterpreter) eval_SkipStmt(SkipStmt) {}
+func (interpreter *ImpInterpreter) eval_SkipStmt(SkipStmt) ControlflowResult {
+	return ControlNormal
+}
 
-func (interpreter *ImpInterpreter) eval_AssignStmt(node AssignStmt) {
+func (interpreter *ImpInterpreter) eval_AssignStmt(node AssignStmt) ControlflowResult {
 	rhs_val := interpreter.eval_Expr(node.rhs)
 	switch lhs_loc := interpreter.eval_Expr_lvalue(node.lhs, rhs_val).(type) {
 	case *IntVal:
@@ -433,22 +465,23 @@ func (interpreter *ImpInterpreter) eval_AssignStmt(node AssignStmt) {
 		}
 		lhs_loc.val = rhs_intval.val
 	}
+	return ControlNormal
 }
 
-func (interpreter *ImpInterpreter) eval_IfElseStmt(node IfElseStmt) {
+func (interpreter *ImpInterpreter) eval_IfElseStmt(node IfElseStmt) ControlflowResult {
 	cond_val := interpreter.eval_Expr(node.cond)
 	cond_boolval, cond_is_bool := cond_val.(*BoolVal)
 	if !cond_is_bool {
 		panic(fmt.Sprintf("If statement got non-boolean condition '%s'\n", node.cond))
 	}
 	if cond_boolval.val {
-		interpreter.eval_Stmt(node.true_stmt)
+		return interpreter.eval_Stmt(node.true_stmt)
 	} else {
-		interpreter.eval_Stmt(node.false_stmt)
+		return interpreter.eval_Stmt(node.false_stmt)
 	}
 }
 
-func (interpreter *ImpInterpreter) eval_WhileStmt(node WhileStmt) {
+func (interpreter *ImpInterpreter) eval_WhileStmt(node WhileStmt) ControlflowResult {
 	for true {
 		cond_val := interpreter.eval_Expr(node.cond)
 		cond_boolval, cond_is_bool := cond_val.(*BoolVal)
@@ -458,24 +491,61 @@ func (interpreter *ImpInterpreter) eval_WhileStmt(node WhileStmt) {
 		if cond_boolval.val == false {
 			break
 		}
-		interpreter.eval_Stmt(node.body_stmt)
+		stmt_result := interpreter.eval_Stmt(node.body_stmt)
+		switch stmt_result {
+		case ControlBreak:
+			return ControlNormal
+		case ControlContinue:
+			continue
+		case ControlReturn:
+			return ControlReturn
+		}
 	}
+	return ControlNormal
 }
 
-func (interpreter *ImpInterpreter) eval_CallStmt(node CallStmt) {
+func (interpreter *ImpInterpreter) eval_BreakStmt(_ BreakStmt) ControlflowResult {
+	return ControlBreak
+}
+
+func (interpreter *ImpInterpreter) eval_ContinueStmt(_ ContinueStmt) ControlflowResult {
+	return ControlContinue
+}
+
+func (interpreter *ImpInterpreter) eval_IncStmt(node IncStmt) ControlflowResult {
+	lhs_val_int, lhs_is_int := interpreter.eval_Expr(node.subexpr).(*IntVal)
+	if !lhs_is_int {
+		panic(fmt.Sprintf("Attempted to increment non-integer value '%s'\n", node))
+	}
+	lhs_val_int.val++
+	return ControlNormal
+}
+
+func (interpreter *ImpInterpreter) eval_DecStmt(node DecStmt) ControlflowResult {
+	lhs_val_int, lhs_is_int := interpreter.eval_Expr(node.subexpr).(*IntVal)
+	if !lhs_is_int {
+		panic(fmt.Sprintf("Attempted to decrement non-integer value '%s'\n", node))
+	}
+	lhs_val_int.val--
+	return ControlNormal
+}
+
+func (interpreter *ImpInterpreter) eval_CallStmt(node CallStmt) ControlflowResult {
 	interpreter.eval_function_call(node.func_name, node.args)
+	return ControlNormal
 }
 
-func (interpreter *ImpInterpreter) eval_PrintStmt(node PrintStmt) {
+func (interpreter *ImpInterpreter) eval_PrintStmt(node PrintStmt) ControlflowResult {
 	var outputs []string
 	for _, arg := range node.args {
 		arg_val := interpreter.eval_Expr(arg)
 		outputs = append(outputs, fmt.Sprintf("%s", arg_val))
 	}
 	fmt.Print(strings.Join(outputs, " "))
+	return ControlNormal
 }
 
-func (interpreter *ImpInterpreter) eval_ScanfStmt(node ScanfStmt) {
+func (interpreter *ImpInterpreter) eval_ScanfStmt(node ScanfStmt) ControlflowResult {
 	for index, fmt_str := range strings.Split(node.format_string, " ") {
 		var imp_val ImpValues
 		switch fmt_str {
@@ -496,20 +566,21 @@ func (interpreter *ImpInterpreter) eval_ScanfStmt(node ScanfStmt) {
 		case *IntVal:
 			rhs_intval, rhs_is_intval := imp_val.(*IntVal)
 			if !rhs_is_intval {
-				panic(fmt.Sprintf("scanf: Attempted to assign input '%s' of type %T to variable '%s' of type %T\n", imp_val, imp_val, lhs_loc, lhs_loc))
+				panic(fmt.Sprintf("scanf: Attempted to assign input '%s' of type %T to variable '%s' of type %T\n", imp_val, imp_val, lhs_val, lhs_loc))
 			}
 			lhs_loc.val = rhs_intval.val
 		case *BoolVal:
 			rhs_intval, rhs_is_boolval := imp_val.(*BoolVal)
 			if !rhs_is_boolval {
-				panic(fmt.Sprintf("scanf: Attempted to assign input '%s' of type %T to variable '%s' of type %T\n", imp_val, imp_val, lhs_loc, lhs_loc))
+				panic(fmt.Sprintf("scanf: Attempted to assign input '%s' of type %T to variable '%s' of type %T\n", imp_val, imp_val, lhs_val, lhs_loc))
 			}
 			lhs_loc.val = rhs_intval.val
 		}
 	}
+	return ControlNormal
 }
 
-func (interpreter *ImpInterpreter) eval_ReturnStmt(node ReturnStmt) {
+func (interpreter *ImpInterpreter) eval_ReturnStmt(node ReturnStmt) ControlflowResult {
 	top_state := interpreter.get_top_state()
 	top_state.return_value = interpreter.eval_Expr(node.arg)
 	if top_state.current_function_name != "" {
@@ -518,27 +589,43 @@ func (interpreter *ImpInterpreter) eval_ReturnStmt(node ReturnStmt) {
 			panic(fmt.Sprintf("Function %s should return value of type %s, but actually returned '%s' of type %s\n", top_state.current_function_name, expected_return_type, node.arg, top_state.return_value))
 		}
 	}
+	return ControlReturn
 }
 
-func (interpreter *ImpInterpreter) eval_Stmt(nodes []Stmt) {
+// eval_Stmt evaluates a sequence of statements
+// The bool return type designates whether the function has returned, and hence execution of the sequence should stop
+func (interpreter *ImpInterpreter) eval_Stmt(nodes []Stmt) ControlflowResult {
+	var returned ControlflowResult = ControlNormal
 	for _, stmt := range nodes {
 		switch stmt := stmt.(type) {
 		case *SkipStmt:
-			interpreter.eval_SkipStmt(*stmt)
+			returned = interpreter.eval_SkipStmt(*stmt)
 		case *AssignStmt:
-			interpreter.eval_AssignStmt(*stmt)
+			returned = interpreter.eval_AssignStmt(*stmt)
 		case *IfElseStmt:
-			interpreter.eval_IfElseStmt(*stmt)
+			returned = interpreter.eval_IfElseStmt(*stmt)
 		case *WhileStmt:
-			interpreter.eval_WhileStmt(*stmt)
+			returned = interpreter.eval_WhileStmt(*stmt)
+		case *BreakStmt:
+			returned = interpreter.eval_BreakStmt(*stmt)
+		case *ContinueStmt:
+			returned = interpreter.eval_ContinueStmt(*stmt)
+		case *IncStmt:
+			returned = interpreter.eval_IncStmt(*stmt)
+		case *DecStmt:
+			returned = interpreter.eval_DecStmt(*stmt)
 		case *CallStmt:
-			interpreter.eval_CallStmt(*stmt)
+			returned = interpreter.eval_CallStmt(*stmt)
 		case *PrintStmt:
-			interpreter.eval_PrintStmt(*stmt)
+			returned = interpreter.eval_PrintStmt(*stmt)
 		case *ScanfStmt:
-			interpreter.eval_ScanfStmt(*stmt)
+			returned = interpreter.eval_ScanfStmt(*stmt)
 		case *ReturnStmt:
-			interpreter.eval_ReturnStmt(*stmt)
+			returned = interpreter.eval_ReturnStmt(*stmt)
+		}
+		if returned != ControlNormal {
+			return returned
 		}
 	}
+	return returned
 }

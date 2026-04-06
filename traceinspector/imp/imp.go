@@ -14,19 +14,35 @@ type ImpTypes interface {
 
 type IntType struct{}
 
-func (ty IntType) isType()
+func (ty IntType) isType() {}
+
+func (ty IntType) String() string {
+	return "int"
+}
 
 type BoolType struct{}
 
-func (ty BoolType) isType()
+func (ty BoolType) isType() {}
+
+func (ty BoolType) String() string {
+	return "bool"
+}
 
 type StringType struct{}
 
-func (ty StringType) isType()
+func (ty StringType) isType() {}
+
+func (ty StringType) String() string {
+	return "string"
+}
 
 type NoneType struct{}
 
-func (ty NoneType) isType()
+func (ty NoneType) isType() {}
+
+func (ty NoneType) String() string {
+	return "none"
+}
 
 type ArrayType struct {
 	Element_type ImpTypes
@@ -36,7 +52,7 @@ func (ty ArrayType) String() string {
 	return fmt.Sprintf("ArrayType<%s>", ty.Element_type)
 }
 
-func (ty ArrayType) isType()
+func (ty ArrayType) isType() {}
 
 // Given a Value and a specified Type, check that the Value is of the specified type
 func check_val_type_match(val ImpValues, _type ImpTypes) bool {
@@ -89,7 +105,7 @@ type IntVal struct {
 }
 
 func (val IntVal) String() string {
-	return fmt.Sprintf("%s", val.val)
+	return fmt.Sprintf("%d", val.val)
 }
 
 func (*IntVal) isValue() {}
@@ -99,7 +115,7 @@ type BoolVal struct {
 }
 
 func (val BoolVal) String() string {
-	return fmt.Sprintf("%s", val.val)
+	return fmt.Sprintf("%t", val.val)
 }
 
 func (*BoolVal) isValue() {}
@@ -110,7 +126,7 @@ type ArrayVal struct {
 }
 
 func (val ArrayVal) String() string {
-	return fmt.Sprintf("%s", val.val)
+	return fmt.Sprintf("\"%s\"", val.val)
 }
 
 func (*ArrayVal) isValue() {}
@@ -141,10 +157,28 @@ type ArgPair struct {
 	arg_type ImpTypes
 }
 
+func (arg ArgPair) String() string {
+	return fmt.Sprintf("%s %s", arg.name, arg.arg_type)
+}
+
 type ImpFunction struct {
-	Arg_names   []ArgPair
+	Name        string
+	Arg_pairs   []ArgPair
 	Body        []Stmt
 	Return_type ImpTypes
+}
+
+func (fun ImpFunction) String() string {
+	var args []string
+	for _, arg := range fun.Arg_pairs {
+		args = append(args, fmt.Sprintf("%s", arg))
+	}
+	var stmts []string
+	for index, stmt := range fun.Body {
+		stmts = append(stmts, fmt.Sprintf("%s", stmt))
+		stmts[index] = strings.ReplaceAll(stmts[index], "\n", "\n\t")
+	}
+	return fmt.Sprintf("fun %s(%s) %s {\n\t%s\n}\n", fun.Name, strings.Join(args, ", "), fun.Return_type, strings.Join(stmts, "\n\t"))
 }
 
 // ////////////////////
@@ -164,8 +198,7 @@ type Stmt interface {
 
 type VarExpr struct {
 	Node
-	name     string
-	var_type ImpTypes
+	name string
 }
 
 func (*VarExpr) isExpr() {}
@@ -204,13 +237,12 @@ type StringLitExpr struct {
 func (*StringLitExpr) isExpr() {}
 
 func (expr StringLitExpr) String() string {
-	return expr.value
+	return "\"" + expr.value + "\""
 }
 
 type ArrayLitExpr struct {
 	Node
-	element_type ImpTypes
-	elements     []Expr
+	elements []Expr
 }
 
 func (*ArrayLitExpr) isExpr() {}
@@ -356,6 +388,17 @@ func (expr GeqExpr) String() string {
 	return fmt.Sprintf("%s >= %s", expr.lhs, expr.rhs)
 }
 
+type NegExpr struct {
+	Node
+	subexpr Expr
+}
+
+func (*NegExpr) isExpr() {}
+
+func (expr NegExpr) String() string {
+	return fmt.Sprintf("-%s", expr.subexpr)
+}
+
 type NotExpr struct {
 	Node
 	subexpr Expr
@@ -431,6 +474,7 @@ func (expr LenExpr) String() string {
 // statements
 
 type SkipStmt struct {
+	Node
 }
 
 func (*SkipStmt) isStmt() {}
@@ -459,13 +503,15 @@ func (*IfElseStmt) isStmt() {}
 func (stmt IfElseStmt) String() string {
 	var true_stmts []string
 	var false_stmts []string
-	for _, stmt := range stmt.true_stmt {
-		true_stmts = append(true_stmts, fmt.Sprintf("    %s", stmt))
+	for index, stmt := range stmt.true_stmt {
+		true_stmts = append(true_stmts, fmt.Sprintf("\t%s", stmt))
+		true_stmts[index] = strings.ReplaceAll(true_stmts[index], "\n", "\n\t")
 	}
-	for _, stmt := range stmt.false_stmt {
-		false_stmts = append(false_stmts, fmt.Sprintf("    %s", stmt))
+	for index, stmt := range stmt.false_stmt {
+		false_stmts = append(false_stmts, fmt.Sprintf("\t%s", stmt))
+		false_stmts[index] = strings.ReplaceAll(false_stmts[index], "\n", "\n\t")
 	}
-	return fmt.Sprintf("if %s {\n%s} else {\n%s}\n", stmt.cond, strings.Join(true_stmts, "\n"), strings.Join(false_stmts, "\n"))
+	return fmt.Sprintf("if %s {\n%s\n} else {\n%s\n}\n", stmt.cond, strings.Join(true_stmts, "\n"), strings.Join(false_stmts, "\n"))
 }
 
 type WhileStmt struct {
@@ -478,10 +524,53 @@ func (*WhileStmt) isStmt() {}
 
 func (stmt WhileStmt) String() string {
 	var substmts []string
-	for _, stmt := range stmt.body_stmt {
-		substmts = append(substmts, fmt.Sprintf("    %s", stmt))
+	for index, stmt := range stmt.body_stmt {
+		substmts = append(substmts, fmt.Sprintf("\t%s", stmt))
+		substmts[index] = strings.ReplaceAll(substmts[index], "\n", "\n\t")
 	}
-	return fmt.Sprintf("while %s {\n%s}\n", stmt.cond, strings.Join(substmts, "\n"))
+	return fmt.Sprintf("while %s {\n%s\n}\n", stmt.cond, strings.Join(substmts, "\n"))
+}
+
+type BreakStmt struct {
+	Node
+}
+
+func (*BreakStmt) isStmt() {}
+
+func (stmt BreakStmt) String() string {
+	return "break"
+}
+
+type ContinueStmt struct {
+	Node
+}
+
+func (*ContinueStmt) isStmt() {}
+
+func (stmt ContinueStmt) String() string {
+	return "continue"
+}
+
+type IncStmt struct {
+	Node
+	subexpr Expr
+}
+
+func (*IncStmt) isStmt() {}
+
+func (stmt IncStmt) String() string {
+	return fmt.Sprintf("%s++\n", stmt.subexpr)
+}
+
+type DecStmt struct {
+	Node
+	subexpr Expr
+}
+
+func (*DecStmt) isStmt() {}
+
+func (stmt DecStmt) String() string {
+	return fmt.Sprintf("%s--\n", stmt.subexpr)
 }
 
 type CallStmt struct {
@@ -528,7 +617,7 @@ func (stmt ScanfStmt) String() string {
 	for _, arg := range stmt.assign_locations {
 		args = append(args, fmt.Sprintf("%s", arg))
 	}
-	return fmt.Sprintf("scanf(%s, %s)\n", stmt.format_string, strings.Join(args, ", "))
+	return fmt.Sprintf("Scanf(%s, %s)\n", stmt.format_string, strings.Join(args, ", "))
 }
 
 type ReturnStmt struct {
