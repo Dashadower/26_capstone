@@ -126,7 +126,7 @@ type ArrayVal struct {
 }
 
 func (val ArrayVal) String() string {
-	return fmt.Sprintf("\"%s\"", val.val)
+	return fmt.Sprintf("%s", val.val)
 }
 
 func (*ArrayVal) isValue() {}

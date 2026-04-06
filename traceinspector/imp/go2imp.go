@@ -54,13 +54,13 @@ func (nh *Go2ImpTranslator) translate_BasicLit(expr *ast.BasicLit) Expr {
 	case token.INT:
 		i, err := strconv.Atoi(expr.Value)
 		if err != nil {
-			panic(fmt.Sprintf("translate_BasicLit: Error while translating %s: %s", nodeString(expr), err))
+			panic(fmt.Sprintf("go2imp translate_BasicLit: Error while translating %s: %s", nodeString(expr), err))
 		}
 		return &IntLitExpr{Node: Node{nh.get_ast_linenum(expr)}, value: i}
 	case token.STRING:
 		return &StringLitExpr{Node: nh.create_node_struct_from_ast(expr), value: strings.Trim(strings.ReplaceAll(expr.Value, "\\n", "\n"), "\"")}
 	default:
-		panic(fmt.Sprintf("translate_BasicLit: Unsupported literal '%s'", nodeString(expr)))
+		panic(fmt.Sprintf("go2imp translate_BasicLit: Unsupported literal '%s'", nodeString(expr)))
 	}
 }
 
@@ -94,18 +94,30 @@ func (nh *Go2ImpTranslator) translate_BinaryExpr(expr *ast.BinaryExpr) Expr {
 	case token.GEQ:
 		return &GeqExpr{Node: node, lhs: lhs_expr, rhs: rhs_expr}
 	default:
-		panic(fmt.Sprintf("Unsupported token.Token %s", expr.Op))
+		panic(fmt.Sprintf("go2imp: Unsupported token.Token %s", expr.Op))
 	}
 }
 
 func (nh *Go2ImpTranslator) translate_CallExpr(expr *ast.CallExpr) Expr {
 	func_ident, func_is_ident := expr.Fun.(*ast.Ident)
 	if !func_is_ident {
-		panic("Only idents are allowed as functions in ast.CallExpr")
+		panic("go2imp: Only idents are allowed as functions in ast.CallExpr")
 	}
 	var translated_args []Expr
 	for _, expr_node := range expr.Args {
 		translated_args = append(translated_args, nh.translate_Expr(&expr_node))
+	}
+	switch func_ident.Name {
+	case "make_array":
+		if len(translated_args) != 2 {
+			panic(fmt.Sprintf("go2imp: make_array() expects 2 arguments, but got %d", len(translated_args)))
+		}
+		return &MakeArrayExpr{Node: nh.create_node_struct_from_ast(expr), size: translated_args[0], value: translated_args[1]}
+	case "len":
+		if len(translated_args) != 1 {
+			panic(fmt.Sprintf("go2imp: len() expects 2 arguments, but got %d", len(translated_args)))
+		}
+		return &LenExpr{Node: nh.create_node_struct_from_ast(expr), subexpr: translated_args[0]}
 	}
 	return &CallExpr{Node: nh.create_node_struct_from_ast(expr), func_name: func_ident.Name, args: translated_args}
 }
@@ -169,7 +181,7 @@ func (nh *Go2ImpTranslator) translate_Expr(expr *ast.Expr) Expr {
 	case *ast.UnaryExpr:
 		return nh.translate_UnaryExpr(expr)
 	default:
-		panic(fmt.Sprintf("translate_Expr: unsupported ast.Expr node type: %T", expr))
+		panic(fmt.Sprintf("go2imp translate_Expr: unsupported ast.Expr node type: %T", expr))
 	}
 }
 
@@ -206,7 +218,7 @@ func (nh *Go2ImpTranslator) translate_ExprStmt(stmt *ast.ExprStmt) []Stmt {
 	create_scanf := func() Stmt {
 		format_string_impexpr, format_string_is_string := translated_args[0].(*StringLitExpr)
 		if !format_string_is_string {
-			panic("First argument of Scanf/fmt.Scanf must be a string literal")
+			panic("go2imp: First argument of Scanf/fmt.Scanf must be a string literal")
 		}
 		return &ScanfStmt{Node: nh.create_node_struct_from_ast(stmt), format_string: format_string_impexpr.value, assign_locations: translated_args[1:]}
 	}
@@ -219,14 +231,16 @@ func (nh *Go2ImpTranslator) translate_ExprStmt(stmt *ast.ExprStmt) []Stmt {
 		} else if func_is_selector && func_selectorexpr.Sel.Name == "Print" {
 			return []Stmt{&PrintStmt{Node: nh.create_node_struct_from_ast(stmt), args: translated_args}}
 		}
-		panic("Only idents or fmt.Scanf/fmt.Print are allowed as functions in ast.CallExpr")
+		panic("go2imp: Only idents or fmt.Scanf/fmt.Print are allowed as functions in ast.CallExpr")
 	}
-	if func_ident.Name == "Scanf" {
+	switch func_ident.Name {
+	case "Scanf":
 		return []Stmt{create_scanf()}
-	} else if func_ident.Name == "Printf" {
+	case "Printf":
 		return []Stmt{&PrintStmt{Node: nh.create_node_struct_from_ast(stmt), args: translated_args}}
+	default:
+		return []Stmt{&CallStmt{Node: nh.create_node_struct_from_ast(stmt), func_name: func_ident.Name, args: translated_args}}
 	}
-	return []Stmt{&CallStmt{Node: nh.create_node_struct_from_ast(stmt), func_name: func_ident.Name, args: translated_args}}
 }
 
 func (nh *Go2ImpTranslator) translate_ForStmt(stmt *ast.ForStmt) []Stmt {
@@ -276,7 +290,7 @@ func (nh *Go2ImpTranslator) translate_BranchStmt(stmt *ast.BranchStmt) []Stmt {
 	case token.CONTINUE:
 		return []Stmt{&ContinueStmt{Node: nh.create_node_struct_from_ast(stmt)}}
 	default:
-		panic(fmt.Sprintf("Unsupported BranchStmt token %s\n", stmt.Tok))
+		panic(fmt.Sprintf("go2imp: Unsupported BranchStmt token %s\n", stmt.Tok))
 	}
 }
 
@@ -303,7 +317,7 @@ func (nh *Go2ImpTranslator) translate_Stmt(stmt ast.Stmt) []Stmt {
 	case *ast.BranchStmt:
 		return nh.translate_BranchStmt(stmt)
 	default:
-		panic(fmt.Sprintf("translate_Stmt: unsupported ast.Stmt node type: %T", stmt))
+		panic(fmt.Sprintf("go2imp: translate_Stmt: unsupported ast.Stmt node type: %T", stmt))
 	}
 }
 
