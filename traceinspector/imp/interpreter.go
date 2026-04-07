@@ -590,9 +590,9 @@ func (interpreter *ImpInterpreter) eval_PrintStmt(node PrintStmt) ControlflowRes
 	var outputs []string
 	for _, arg := range node.Args {
 		arg_val := interpreter.eval_Expr(arg)
-		outputs = append(outputs, strings.Replace(fmt.Sprintf("%s", arg_val), "\\n", "\n", 0))
+		outputs = append(outputs, fmt.Sprintf("%s", arg_val))
 	}
-	fmt.Print(strings.Join(outputs, " "))
+	fmt.Print(strings.ReplaceAll(strings.Join(outputs, " "), "\\n", "\n"))
 	return ControlNormal
 }
 
